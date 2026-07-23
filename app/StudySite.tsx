@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import content from "./studyContent.json";
 
@@ -14,6 +15,7 @@ type StudySection = {
 };
 
 const sections = content.sections as StudySection[];
+const firstSectionId = sections[0]?.id ?? "";
 
 function normalize(value: string) {
   return value.toLocaleLowerCase("he-IL").trim();
@@ -28,9 +30,16 @@ function sectionText(section: StudySection) {
   ].join(" ");
 }
 
-export function StudySite() {
+function topicHref(sectionId: string) {
+  return sectionId === firstSectionId ? "/" : `/topics/${sectionId}`;
+}
+
+type StudySiteProps = {
+  topicId?: string;
+};
+
+export function StudySite({ topicId = firstSectionId }: StudySiteProps) {
   const [query, setQuery] = useState("");
-  const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
   const [dense, setDense] = useState(false);
 
   const filteredSections = useMemo(() => {
@@ -40,7 +49,7 @@ export function StudySite() {
   }, [query]);
 
   const activeSection =
-    filteredSections.find((section) => section.id === activeId) ??
+    filteredSections.find((section) => section.id === topicId) ??
     filteredSections[0] ??
     sections[0];
 
@@ -72,14 +81,14 @@ export function StudySite() {
 
         <nav className="topic-list">
           {filteredSections.map((section, index) => (
-            <button
+            <Link
               className={section.id === activeSection?.id ? "active" : ""}
+              href={topicHref(section.id)}
               key={section.id}
-              onClick={() => setActiveId(section.id)}
             >
               <span>{String(index + 1).padStart(2, "0")}</span>
               {section.title}
-            </button>
+            </Link>
           ))}
         </nav>
       </aside>
@@ -112,13 +121,13 @@ export function StudySite() {
 
         <div className="mobile-topic-strip" aria-label="נושאים">
           {filteredSections.map((section, index) => (
-            <button
+            <Link
               className={section.id === activeSection?.id ? "active" : ""}
+              href={topicHref(section.id)}
               key={section.id}
-              onClick={() => setActiveId(section.id)}
             >
               {index + 1}
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -160,10 +169,10 @@ export function StudySite() {
           <h2>מפת נושאים מלאה</h2>
           <div>
             {filteredSections.map((section, index) => (
-              <button key={section.id} onClick={() => setActiveId(section.id)}>
+              <Link href={topicHref(section.id)} key={section.id}>
                 <span>{index + 1}</span>
                 {section.title}
-              </button>
+              </Link>
             ))}
           </div>
         </section>

@@ -8,8 +8,11 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 
-DOCX_PATH = Path(r"C:\Users\eitan\Downloads\נוירוביולוגיה\סיכום למבחן בבנוירוביולוגיה.docx")
 ROOT = Path(__file__).resolve().parents[1]
+DOCX_PATH = max(
+    (path for path in ROOT.parent.glob("*.docx") if not path.name.startswith("~$")),
+    key=lambda path: path.stat().st_size,
+)
 PUBLIC_ASSETS = ROOT / "public" / "doc-assets"
 DATA_PATH = ROOT / "app" / "studyContent.json"
 
@@ -46,23 +49,53 @@ def is_question_or_heading(text: str) -> bool:
         return False
     if len(text) > 95:
         return False
-    markers = [
-        "?",
+    if text.endswith("."):
+        return False
+
+    question_starters = (
         "מה ",
         "מי ",
+        "מתי ",
+        "למה ",
+        "איך ",
+        "איזה ",
+        "איפה ",
+    )
+    heading_starters = (
+        "מבוא",
         "מודל",
         "מערכת",
-        "למידה",
-        "זיכרון",
-        "נוירונים",
+        "מערכות",
+        "שלוש",
         "שלושת",
         "אמיגדלה",
+        "מעגל",
+        "פלסטיות",
+        "למידה",
+        "זיכרון עבודה",
+        "סוגי זיכרון",
+        "הנוירון",
+        "נוירונים",
         "פוטנציאל",
         "תפיסה",
         "תפקוד",
+        "תכנון",
         "קשב",
-    ]
-    return any(marker in text for marker in markers)
+        "מיינדפולנס",
+        "גיזום",
+        "הקניית",
+        "שחזור",
+        "אליוט",
+        "פיניאס",
+        "ראסל",
+        "התמכרות",
+        "תהליכי",
+        "דרכי",
+        "דוגמה לכלי",
+    )
+    if "?" in text or text.startswith(question_starters):
+        return True
+    return text.startswith(heading_starters)
 
 
 def paragraph_to_block(p: ET.Element, rels: dict[str, str], image_map: dict[str, str]) -> dict | None:
@@ -127,13 +160,21 @@ def extract() -> None:
     for block in raw_blocks:
         text = block["text"]
         if block["style"] == "heading" and text:
-            if current:
+            if current and current["blocks"]:
                 sections.append(current)
-            current = {
-                "id": f"topic-{len(sections) + 1}",
-                "title": text,
-                "blocks": [],
-            }
+                current = {
+                    "id": f"topic-{len(sections) + 1}",
+                    "title": text,
+                    "blocks": [],
+                }
+            elif current:
+                current["title"] = f'{current["title"]} / {text}'
+            else:
+                current = {
+                    "id": f"topic-{len(sections) + 1}",
+                    "title": text,
+                    "blocks": [],
+                }
             if block["images"]:
                 current["blocks"].append({"type": "image-row", "images": block["images"]})
         else:
